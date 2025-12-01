@@ -106,7 +106,7 @@ $conn->close();
 
 <h1>Product Management System</h1>
 
-<h2>Add New Product</h2>
+<h2>Add New Productenneen</h2>
 <?php if ($response): ?>
     <p class="<?= $response['success'] ? 'success' : 'error' ?>">
         <?= htmlspecialchars($response['message']) ?>
@@ -196,3 +196,4 @@ $conn->close();
 
 </body>
 </html>
+
