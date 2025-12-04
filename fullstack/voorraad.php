@@ -15,11 +15,13 @@ $response = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
     $delete_id = $_POST['delete_id'];
+
     $delStmt = $conn->prepare("DELETE FROM product WHERE id = ?");
     $delStmt->bind_param("i", $delete_id);
     $delStmt->execute();
     $delStmt->close();
 }
+
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
 
@@ -39,6 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
             INSERT INTO product (product_type, fabriek, aantal, minimum_aantal, inkoopprijs, verkoopsprijs, locatie) 
             VALUES (?, ?, ?, ?, ?, ?, ?)
         ");
+
         $stmt->bind_param("ssiiids", 
             $product_type, 
             $fabriek, 
@@ -67,6 +70,7 @@ $filter_fabriek = $_GET['filter_fabriek'] ?? '';
 $filter_locatie = $_GET['filter_locatie'] ?? '';
 
 $sql = "SELECT * FROM product WHERE 1=1";
+
 if (!empty($filter_name)) {
     $name = "%" . $conn->real_escape_string($filter_name) . "%";
     $sql .= " AND product_type LIKE '$name'";
@@ -79,6 +83,7 @@ if (!empty($filter_locatie)) {
     $loc = "%" . $conn->real_escape_string($filter_locatie) . "%";
     $sql .= " AND locatie LIKE '$loc'";
 }
+
 $sql .= " ORDER BY id DESC";
 
 $result = $conn->query($sql);
@@ -99,14 +104,15 @@ $conn->close();
 </head>
 <body>
 
-<div style="background:#fff; padding:15px; margin-bottom:20px; border-radius:6px; box-shadow:0 0 4px #ccc;">
-    <a href="voorraad.php" style="margin-right:20px;">Producten</a>
+<div class="top-bar">
+    <a href="voorraad.php">Producten</a>
     <a href="voorraadLocatie.php">Locaties</a>
 </div>
 
 <h1>Product Management System</h1>
 
-<h2>Add New Productenneen</h2>
+<h2>Add New Product</h2>
+
 <?php if ($response): ?>
     <p class="<?= $response['success'] ? 'success' : 'error' ?>">
         <?= htmlspecialchars($response['message']) ?>
@@ -121,10 +127,10 @@ $conn->close();
     <input type="number" step="0.01" name="inkoopprijs" placeholder="Inkoopprijs (€)" required />
     <input type="number" step="0.01" name="verkoopsprijs" placeholder="Verkoopsprijs (€)" required />
     <input type="text" name="locatie" placeholder="Locatie" required />
-    <button type="submit" name="add_product">Add Product</button>
+    
 </form>
 
-<h2>Filter Products</h2>
+<h2>Filters Products</h2>
 <form method="GET">
     <input type="text" name="filter_name" placeholder="Search by Product Type" value="<?= htmlspecialchars($filter_name) ?>" />
     <input type="text" name="filter_fabriek" placeholder="Search by Fabriek" value="<?= htmlspecialchars($filter_fabriek) ?>" />
@@ -134,6 +140,7 @@ $conn->close();
 </form>
 
 <h2>Product List</h2>
+
 <table>
     <thead>
         <tr>
@@ -147,53 +154,61 @@ $conn->close();
             <th>Locatie</th>
             <th>Created At</th>
             <th>Delete</th>
-            <th>test</th>
+            <th>Edit</th>
         </tr>
     </thead>
 
     <tbody>
     <?php if (!empty($products)): ?>
     <?php foreach ($products as $p): ?>
-    <tr>
-    <td><?= $p['id'] ?></td>
-    <td><?= htmlspecialchars($p['product_type']) ?></td>
-    <td><?= htmlspecialchars($p['fabriek']) ?></td>
+        <tr>
+            <td><?= $p['id'] ?></td>
+            <td><?= htmlspecialchars($p['product_type']) ?></td>
+            <td><?= htmlspecialchars($p['fabriek']) ?></td>
 
-    <?php
-    $antal = isset($p['aantal']) ? (int)$p['aantal'] : 0;
-    $min   = isset($p['minimum_aantal']) ? (int)$p['minimum_aantal'] : 0;
-    $lowStock = ($antal <= $min);
-    ?>
+            <?php
+            $antal = (int)$p['aantal'];
+            $min = (int)$p['minimum_aantal'];
+            $lowStock = ($antal <= $min);
+            ?>
 
-    <td<?= $lowStock ? ' class="low-stock"' : '' ?>>
-    <?= htmlspecialchars($antal) ?>
-    <?php if ($lowStock): ?>
-        ⚠
-    <?php endif; ?>
-    </td>
+            <td<?= $lowStock ? ' class="low-stock"' : '' ?>>
+                <?= htmlspecialchars($antal) ?>
+                <?php if ($lowStock): ?> ⚠ <?php endif; ?>
+            </td>
+
+            <td><?= $p['minimum_aantal'] ?></td>
+            <td>€<?= number_format($p['inkoopprijs'], 2) ?></td>
+            <td>€<?= number_format($p['verkoopsprijs'], 2) ?></td>
+            <td><?= htmlspecialchars($p['locatie']) ?></td>
+            
+            <td>
+                
+            
+                <form method="POST" onsubmit="return confirm('Weet je zeker dat je dit product wil verwijderen?');">
+                    <input type="hidden" name="delete_id" value="<?= $p['id'] ?>">
+                    <button type="submit" class="delete-btn">Delete</button>
+                </form>
+            </td>
+             
+            <form methode="POST">
+            <input type="hidden" name="edit_id" value="<?= $p['id'] ?>">
+            <button type="submit" class="edit-btn">Edit</button>
+             </form>
+
+      </td>";
+        </tr>
 
 
-    <td><?= $p['minimum_aantal'] ?></td>
-    <td>€<?= number_format($p['inkoopprijs'], 2) ?></td>
-    <td>€<?= number_format($p['verkoopsprijs'], 2) ?></td>
-    <td><?= htmlspecialchars($p['locatie']) ?></td>
-    <td><?= $p['created_at'] ?></td>
-    
-
-    <td>
-    <form method="post" onsubmit="return confirm('Weet je zeker dat je dit product wil verwijderen?');">
-    <input type="hidden" name="delete_id" value="<?= $p['id'] ?>">
-    <input type="submit" value="Delete">
-    </form>
-    </td>
-    </tr>
     <?php endforeach; ?>
     <?php else: ?>
-            <tr><td colspan="10">No products found.</td></tr>
-        <?php endif; ?>
+        <tr><td colspan="10">No products found.</td></tr>
+    <?php endif; ?>
     </tbody>
 </table>
 
 </body>
 </html>
+
+
 
